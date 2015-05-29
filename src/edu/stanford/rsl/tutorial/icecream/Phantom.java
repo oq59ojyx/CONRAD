@@ -5,11 +5,21 @@ import ij.ImageJ;
 import edu.stanford.rsl.conrad.data.numeric.*;
 public class Phantom extends Grid2D {
 
+	private float detectorSpacing;
+	
 	public Phantom(int size){
 		super(size, size);
 		createPhantom(size);
 	}
-
+	
+	/*private void setDetectorSpacing(float ds) {
+		this.detectorSpacing = ds;
+	}
+	
+	public float getDetectorSpacing() {
+		return detectorSpacing;
+	} */
+	
 	private void createPhantom(int size){
 		
 		for (int i = 20;i < size; i++)
@@ -27,8 +37,8 @@ public class Phantom extends Grid2D {
 
 	}
 
-	public void createSinogram(int numberProj, float detectorSpacing, int numberDetPixel, float SID){
-	
+	public Grid2D createSinogram(int numberProj, float detectorSpacing, int numberDetPixel, float SID){
+		//setDetectorSpacing(detectorSpacing);
 		Grid2D sinogram = new Grid2D(numberProj, numberDetPixel);
 		for (int theta = 0; theta < numberProj; theta++)
 		{
@@ -56,6 +66,7 @@ public class Phantom extends Grid2D {
 			}
 		}
 		sinogram.show();
+		return sinogram;
 	}
 
 	
@@ -74,12 +85,9 @@ public class Phantom extends Grid2D {
 		
 		float d = (float) (Math.sqrt(2)*p.getHeight()*p.getSpacing()[0]);
 		float detectorSpacing = (float) 0.1;
-		p.createSinogram(180, detectorSpacing, (int) 180, d/2 );
+		p.createSinogram(180, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );
 		//p.createSinogram(180, (float)1.2, 500, d);
 		
-
-
-
 	}
 
 
