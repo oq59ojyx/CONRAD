@@ -14,7 +14,7 @@ public class PBP {
 		int idx = 0;
 		for (int n = -N/2; n <=N/2; n++){ //freqSpacing?
 			if(n==0){
-				rampFilter.setAtIndex(idx, (float)1/4);
+				rampFilter.setAtIndex(idx, (float)(1/4));
 			} else if (n%2 == 0){
 				rampFilter.setAtIndex(idx, (float) 0);
 			} else {
@@ -53,6 +53,8 @@ public class PBP {
 	
 	public Grid2D filtering (Grid2D sinogram, Grid1DComplex filter){
 		Grid2D filtered = new Grid2D(sinogram.getWidth(), sinogram.getHeight());
+		filtered.setSpacing(sinogram.getSpacing());
+		filtered.setOrigin(sinogram.getOrigin());
 		for (int row =0; row < sinogram.getWidth(); row++){
 			Grid1DComplex rowS = new Grid1DComplex(sinogram.getWidth());
 			for(int col = 0; col < sinogram.getHeight(); col++){
@@ -98,17 +100,18 @@ public class PBP {
 public Grid2D  backProjection(int numberProj, float detectorSpacing, int numberDetPixel, Grid2D sinogram, int sizeRecon, float pixelSpacingRecon[]){
 		
 		Grid2D backProjection = new Grid2D(sizeRecon,  sizeRecon);
-		backProjection.setOrigin(-(numberDetPixel-1)*pixelSpacingRecon[0]/2, -(numberDetPixel-1)*pixelSpacingRecon[1]/2 );
+		backProjection.setOrigin(-(sizeRecon-1)*pixelSpacingRecon[0]/2, -(sizeRecon-1)*pixelSpacingRecon[1]/2 );
 
-			for (int idxX =0; idxX< backProjection.getHeight(); idxX ++){
-				for (int idxY =0; idxY< backProjection.getWidth(); idxY ++){
+			for (int idxX =0; idxX< backProjection.getWidth(); idxX ++){
+				for (int idxY =0; idxY< backProjection.getHeight(); idxY ++){
 					for (int theta = 0; theta < numberProj; theta++)
 					{
 						double alpha =  ((2*Math.PI/(numberProj))*theta);
 						double[] id = indexToPhysical(idxX, idxY, pixelSpacingRecon, backProjection.getOrigin());
 						double s=id[0]*Math.cos(alpha)+ id[1]*Math.sin(alpha);
-						s = s/detectorSpacing - sinogram.getOrigin()[0];
+						s = (s- sinogram.getOrigin()[1])/detectorSpacing ;
 						float value = InterpolationOperators.interpolateLinear(sinogram, theta, s);
+						value = (float) (Math.PI*value/numberProj);
 						backProjection.addAtIndex(idxX, idxY, value);
 						
 					}
@@ -142,10 +145,10 @@ public Grid2D  backProjection(int numberProj, float detectorSpacing, int numberD
 		p.show("Phantom");
 		float d = (float) (Math.sqrt(2)*p.getHeight()*p.getSpacing()[0]);
 		float detectorSpacing = (float) 0.1;
-		Grid2D sinogram = p.createSinogram(180, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );
-		sinogram.setSpacing(0.1, 0.1);
-		sinogram.setOrigin(-(size-1)*sinogram.getSpacing()[0]/2, -(size-1)*sinogram.getSpacing()[1]/2 );
-		float [] pixelSpacingRecon = {(float) 0.1, (float) 0.2};
+		Grid2D sinogram = p.createSinogram(360, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );
+		sinogram.setSpacing(360/sinogram.getSize()[0], detectorSpacing);
+		sinogram.setOrigin(-(sinogram.getSize()[0]-1)*sinogram.getSpacing()[0]/2, -(sinogram.getSize()[1]-1)*sinogram.getSpacing()[1]/2 );
+		float [] pixelSpacingRecon = {(float) 0.2, (float) 0.2};
 		
 		PBP object = new PBP();
 		Grid1DComplex rampFilter = object.fftrampFilter(detectorSpacing, sinogram);
@@ -158,8 +161,9 @@ public Grid2D  backProjection(int numberProj, float detectorSpacing, int numberD
 		filtered.show("filteredRamLak");
 		
 	
-		Grid2D reconstructedFilter = object.backProjection(180, detectorSpacing, (int) ((int) d/detectorSpacing), filtered, size, pixelSpacingRecon);
-		Grid2D reconstructed = object.backProjection(180, detectorSpacing, (int) ((int) d/detectorSpacing), sinogram, size, pixelSpacingRecon);
+		Grid2D reconstructedFilter = object.backProjection(360, detectorSpacing, (int) ((int) d/detectorSpacing), filtered, size, pixelSpacingRecon);
+		Grid2D reconstructed = object.backProjection(360, detectorSpacing, (int) ((int) d/detectorSpacing), sinogram, size, pixelSpacingRecon);
+		Grid2D reconstructedFilterRamLak = object.backProjection(360, detectorSpacing, (int) ((int) d/detectorSpacing), filteredRamLak, size, pixelSpacingRecon);
 		
 	}
 	
