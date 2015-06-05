@@ -69,6 +69,74 @@ public class Phantom extends Grid2D {
 		return sinogram;
 	}
 
+	public Grid2D createFanogram(int numberProj, float detectorSpacing, int numberDetPixel, float dSD, int rotAngle, float dSI){
+		
+		Grid2D fanogram = new Grid2D(numberProj*numberDetPixel, numberProj);
+		int idx = 0;
+		for (int beta = 0; beta < numberProj; beta+= rotAngle)
+		{
+			//Umrechnung in RAD
+			double alpha =  ((Math.PI*beta)/180);
+			double sourcePos [] = {Math.sin(alpha)*dSI, Math.cos(alpha)*dSI};
+			
+			for (int detPixel =0; detPixel< numberDetPixel; detPixel ++)
+			{
+				float tMax = numberDetPixel*detectorSpacing/dSD;
+
+				double xspacePhantom = this.getSpacing()[0]/2;
+				double tdiff = tMax/ numberDetPixel;
+				float t = (float) (tMax- (tdiff*(numberDetPixel-1)/2));
+				t = t *detPixel -(detPixel/2-1);
+				idx++;
+				float ray = (float) (dSD/Math.cos(t));
+				
+					for (double l = 0; l< ray; l+= xspacePhantom)
+					{
+					
+					//Umrechnung von Detektorkoord. in Weltkoord.
+					
+					//Phantom
+					//float x =  (float) ((float) sourcePos[0]+ l* Math.cos(t * detPixel)); 
+					//float y = (float) ((float)  sourcePos[1]+ l* Math.sin(t * detPixel));
+						
+						float gamma = (float) (-alpha - t);
+						
+						float x1 = (float) (l * Math.sin(gamma));
+						float y1 = (float) (l * Math.cos(gamma));
+						
+						float x = (float) (x1- sourcePos[0]);
+						float y = (float) (y1 - sourcePos[1]);
+						
+					 double[] id =  physicalToIndex(x, y);
+
+					if (id[0] >= 0 && id[0] < this.getWidth()){
+						if (id[1] >= 0 && id[1] < this.getHeight()){							
+							fanogram.addAtIndex(idx, beta, InterpolationOperators.interpolateLinear(this, id[0], id[1]));
+						}
+					}
+				}
+			}
+		}
+		fanogram.show("fanogram");
+		return fanogram;
+	}
+	
+	public Grid2D rebinning(Grid2D fanogram, float dSI){
+		
+		Grid2D sinogram = new Grid2D (fanogram.getHeight(), fanogram.getWidth());
+		
+		for (int x = 0; x < sinogram.getHeight(); x++){
+			for(int y = 0; y < sinogram.getWidth(); y ++){
+				sinogram.addAtIndex(x, y, InterpolationOperators.interpolateLinear(fanogram, dSI * Math.sin(x), x+y));
+			}
+		}
+		
+		
+		
+		
+		
+		return sinogram;
+	}
 	
 
 	public static void main(String[] args) {
@@ -85,7 +153,8 @@ public class Phantom extends Grid2D {
 		
 		float d = (float) (Math.sqrt(2)*p.getHeight()*p.getSpacing()[0]);
 		float detectorSpacing = (float) 0.1;
-		p.createSinogram(180, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );
+		//p.createSinogram(180, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );
+		p.createFanogram(20,  detectorSpacing, (int) ((int) d/detectorSpacing), d/2, 1, d/5);
 		//p.createSinogram(180, (float)1.2, 500, d);
 		
 	}

@@ -72,19 +72,42 @@ public class PBP {
 	}
 	
 	
-	public Grid2D  backProjection(int numberProj, float detectorSpacing, int numberDetPixel, Grid2D sinogram){
-	
-		Grid2D backProjection = new Grid2D(numberDetPixel,  numberDetPixel);
+	/*public Grid2D  backProjection(int numberProj, float detectorSpacing, int numberDetPixel, Grid2D sinogram, float sizeRecon, float pixelSpacingRecon[]){
 		
+		Grid2D backProjection = new Grid2D(numberDetPixel,  numberDetPixel);
+		backProjection.setOrigin(-(numberDetPixel-1)*detectorSpacing/2, -(numberDetPixel-1)*detectorSpacing/2 );
 
 			for (int idxX =0; idxX< backProjection.getHeight(); idxX ++){
 				for (int idxY =0; idxY< backProjection.getWidth(); idxY ++){
 					for (int theta = 0; theta < numberProj; theta++)
 					{
 						double alpha =  ((2*Math.PI/(numberProj))*theta);
-						double[] id = indexToPhysical(idxX, idxY, detectorSpacing);
+						double[] id = indexToPhysical(idxX, idxY, detectorSpacing, backProjection.getOrigin());
 						double s=id[0]*Math.cos(alpha)+ id[1]*Math.sin(alpha);
-						s = s/detectorSpacing;
+						s = s/detectorSpacing - backProjection.getOrigin()[0];
+						float value = InterpolationOperators.interpolateLinear(sinogram, theta, s);
+						backProjection.addAtIndex(idxX, idxY, value);
+						
+					}
+			}
+		}
+		backProjection.show("backprojection");
+		return backProjection;
+	}*/ 
+	
+public Grid2D  backProjection(int numberProj, float detectorSpacing, int numberDetPixel, Grid2D sinogram, int sizeRecon, float pixelSpacingRecon[]){
+		
+		Grid2D backProjection = new Grid2D(sizeRecon,  sizeRecon);
+		backProjection.setOrigin(-(numberDetPixel-1)*pixelSpacingRecon[0]/2, -(numberDetPixel-1)*pixelSpacingRecon[1]/2 );
+
+			for (int idxX =0; idxX< backProjection.getHeight(); idxX ++){
+				for (int idxY =0; idxY< backProjection.getWidth(); idxY ++){
+					for (int theta = 0; theta < numberProj; theta++)
+					{
+						double alpha =  ((2*Math.PI/(numberProj))*theta);
+						double[] id = indexToPhysical(idxX, idxY, pixelSpacingRecon, backProjection.getOrigin());
+						double s=id[0]*Math.cos(alpha)+ id[1]*Math.sin(alpha);
+						s = s/detectorSpacing - sinogram.getOrigin()[0];
 						float value = InterpolationOperators.interpolateLinear(sinogram, theta, s);
 						backProjection.addAtIndex(idxX, idxY, value);
 						
@@ -95,16 +118,16 @@ public class PBP {
 		return backProjection;
 	}
 
-	public double[] indexToPhysical(double i, double j, float detectorSpacing) {
+	public double[] indexToPhysical(double i, double j, float pixelSpacingRecon[], double origin []) {
 		return new double[] {
-				i * detectorSpacing, // + this.origin[0],
-				j * detectorSpacing // + this.origin[1]
+				i * pixelSpacingRecon[0]+ origin[0],
+				j * pixelSpacingRecon[1] + origin[1]
 		};
 	}
 	
-	public double[] physicalToIndex(double x, double y, float detectorSpacing) {
+	public double[] physicalToIndex(double x, double y, float detectorSpacing, double origin []) {
 		return new double[] {
-				(x ) / detectorSpacing,  //- this.origin[0]
+				(x ) / detectorSpacing- origin[0]
 				//(y ) / detectorSpacing  //- this.origin[1]
 		};
 	}
@@ -116,9 +139,13 @@ public class PBP {
 		Phantom p = new Phantom(size);
 		p.setSpacing(0.1, 0.1);
 		p.setOrigin(-(size-1)*p.getSpacing()[0]/2, -(size-1)*p.getSpacing()[1]/2 );
+		p.show("Phantom");
 		float d = (float) (Math.sqrt(2)*p.getHeight()*p.getSpacing()[0]);
 		float detectorSpacing = (float) 0.1;
-		Grid2D sinogram = p.createSinogram(180, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );	
+		Grid2D sinogram = p.createSinogram(180, detectorSpacing, (int) ((int) d/detectorSpacing), d/2 );
+		sinogram.setSpacing(0.1, 0.1);
+		sinogram.setOrigin(-(size-1)*sinogram.getSpacing()[0]/2, -(size-1)*sinogram.getSpacing()[1]/2 );
+		float [] pixelSpacingRecon = {(float) 0.1, (float) 0.2};
 		
 		PBP object = new PBP();
 		Grid1DComplex rampFilter = object.fftrampFilter(detectorSpacing, sinogram);
@@ -131,8 +158,8 @@ public class PBP {
 		filtered.show("filteredRamLak");
 		
 	
-		Grid2D reconstructedFilter = object.backProjection(180, detectorSpacing, (int) ((int) d/detectorSpacing), filtered);
-		Grid2D reconstructed = object.backProjection(180, detectorSpacing, (int) ((int) d/detectorSpacing), sinogram);
+		Grid2D reconstructedFilter = object.backProjection(180, detectorSpacing, (int) ((int) d/detectorSpacing), filtered, size, pixelSpacingRecon);
+		Grid2D reconstructed = object.backProjection(180, detectorSpacing, (int) ((int) d/detectorSpacing), sinogram, size, pixelSpacingRecon);
 		
 	}
 	
